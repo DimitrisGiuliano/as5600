@@ -99,7 +99,7 @@ namespace AS5600 {
     export function acceleration(): number {
         let currentTime = input.runningTime()
         let dt = (currentTime - prevTime) / 1000
-        if (dt <= 0) return 0
+        //if (dt <= 0) return 0
 
         let currentSpeed = speed()
         let accel = (currentSpeed - prevSpeed) / dt
