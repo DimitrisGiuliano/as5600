@@ -5,12 +5,7 @@ namespace AS5600 {
     const CONFIG_REG = 0x07
     const FULL_ROTATION_RAW_COUNT = 4095
 
-    let previousAngle = 0
-    let fullRotation = 0
-
-    let prevTime = input.runningTime() // in ms
-    let prevTotalDegrees = 0
-    let prevSpeed = 0
+    
 
     //% block="initialize AS5600"
     export function init(): void {
@@ -19,6 +14,12 @@ namespace AS5600 {
         prevTotalDegrees = totalDegrees()
         prevTime = input.runningTime()
         prevSpeed = 0
+        let previousAngle = 0
+        let fullRotation = 0
+
+    let prevTime = input.runningTime() // in ms
+    let prevTotalDegrees = 0
+    let prevSpeed = 0
     }
 
     function readWire(register: number): number {
@@ -99,7 +100,7 @@ namespace AS5600 {
     export function acceleration(): number {
         let currentTime = input.runningTime()
         let dt = (currentTime - prevTime) / 1000
-        //if (dt <= 0) return 0
+        if (dt <= 0) return 0
 
         let currentSpeed = speed()
         let accel = (currentSpeed - prevSpeed) / dt
