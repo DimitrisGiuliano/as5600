@@ -14,14 +14,16 @@ namespace AS5600 {
 
     function readWire(register: number): number {
 
-        let regBuf = pins.createBuffer(1)
-        regBuf[0] = register
+    let regBuf = pins.createBuffer(1)
+    regBuf[0] = register
 
-        pins.i2cWriteBuffer(AS5600_ADDR, regBuf)
+    pins.i2cWriteBuffer(AS5600_ADDR, regBuf, true)
 
-        let data = pins.i2cReadBuffer(AS5600_ADDR, 2)
+    let data = pins.i2cReadBuffer(AS5600_ADDR, 2)
 
-        return (data[0] << 8) | data[1]
+    let value = (data[0] << 8) | data[1]
+
+    return value & 0x0FFF
     }
 
     function rawAngle(): number {
