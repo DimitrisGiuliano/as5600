@@ -33,7 +33,7 @@ namespace AS5600 {
 
         let raw = rawAngle()
 
-        return raw * 360 / FULL_ROTATION_RAW_COUNT
+        return raw 
     }
 
     function fullRotationUpdate(): number {
