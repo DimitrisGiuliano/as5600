@@ -2,73 +2,113 @@ namespace AS5600 {
 
     const AS5600_ADDR = 0x36
     const RAW_ANGLE_REG = 0x0C
-    const FULL_ROTATION_RAW_COUNT = 4096
+    const FULL_ROTATION = 4096
 
     let previousAngle = 0
-    let fullRotation = 0
+    let rotationsCount = 0
+    let filteredAngle = 0
+    let initialized = false
+
 
     //% block="initialize AS5600"
     export function init(): void {
-        previousAngle = rawAngle()
+
+        previousAngle = readRaw()
+        filteredAngle = previousAngle
+        rotationsCount = 0
+        initialized = true
+
     }
 
-    function readWire(register: number): number {
 
-    let regBuf = pins.createBuffer(1)
-    regBuf[0] = register
+    function readRaw(): number {
 
-    pins.i2cWriteBuffer(AS5600_ADDR, regBuf, true)
+        let reg = pins.createBuffer(1)
+        reg[0] = RAW_ANGLE_REG
 
-    let data = pins.i2cReadBuffer(AS5600_ADDR, 2)
+        pins.i2cWriteBuffer(AS5600_ADDR, reg, true)
 
-    let value = (data[0] << 8) | data[1]
+        let data = pins.i2cReadBuffer(AS5600_ADDR, 2)
 
-    return value & 0x0FFF
+        let value = (data[0] << 8) | data[1]
+
+        return value & 0x0FFF
+
     }
 
-    function rawAngle(): number {
-        return readWire(RAW_ANGLE_REG)
+
+    function filteredRaw(): number {
+
+        let raw = readRaw()
+
+        filteredAngle = (filteredAngle * 3 + raw) >> 2
+
+        return filteredAngle
+
     }
 
-    //% block="angle (degrees)"
-    export function angleDegrees(): number {
 
-        let raw = rawAngle()
+    function updateRotations(): void {
 
-        return raw 
-    }
+        let current = filteredRaw()
 
-    function fullRotationUpdate(): number {
+        let diff = current - previousAngle
 
-        let currentAngle = rawAngle()
-        let diff = currentAngle - previousAngle
-
-        if (Math.abs(diff) > 3000) {
+        if (Math.abs(diff) > 2048) {
 
             if (diff > 0) {
-                fullRotation -= 1
+                rotationsCount -= 1
             } else {
-                fullRotation += 1
+                rotationsCount += 1
             }
 
         }
 
-        previousAngle = currentAngle
-        return fullRotation
+        previousAngle = current
+
     }
 
-    //% block="total rotations"
+
+    //% block="AS5600 raw value"
+    export function raw(): number {
+
+        return filteredRaw()
+
+    }
+
+
+    //% block="AS5600 angle degrees"
+    export function angle(): number {
+
+        return filteredRaw() * 360 / FULL_ROTATION
+
+    }
+
+
+    //% block="AS5600 rotations"
     export function rotations(): number {
 
-        fullRotationUpdate()
-        return fullRotation
+        updateRotations()
+        return rotationsCount
 
     }
 
-    //% block="total angle (degrees)"
+
+    //% block="AS5600 total angle degrees"
     export function totalDegrees(): number {
 
-        return rotations() * 360 + angleDegrees()
+        updateRotations()
+
+        return rotationsCount * 360 + angle()
+
+    }
+
+
+    //% block="reset AS5600 zero"
+    export function reset(): void {
+
+        previousAngle = filteredRaw()
+        rotationsCount = 0
 
     }
 
