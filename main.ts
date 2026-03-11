@@ -6,14 +6,14 @@ namespace AS5600 {
     const FULL_ROTATION_RAW_COUNT = 4095
 
     let previousAngle = 0
-    let rotationsCount = 0
+    let rotations = 0
 
     let lastTime = 0
     let lastAngle = 0
     let lastSpeed = 0
 
-    let currentSpeed = 0
-    let currentAcceleration = 0
+    let speedValue = 0
+    let accelValue = 0
 
 
     //% block="initialize AS5600"
@@ -21,59 +21,60 @@ namespace AS5600 {
 
         pins.i2cFrequency(100000)
 
-        previousAngle = rawAngle()
-        rotationsCount = 0
+        previousAngle = readRaw()
+        rotations = 0
 
         lastAngle = totalDegrees()
         lastTime = input.runningTime()
+        lastSpeed = 0
 
     }
 
 
-    function readWire(register: number): number {
+    function readRaw(): number {
 
-        let buf = pins.createBuffer(1)
-        buf[0] = register
+        let reg = pins.createBuffer(1)
+        reg[0] = RAW_ANGLE_REG
 
-        pins.i2cWriteBuffer(SENSOR_ADDR, buf, true)
+        pins.i2cWriteBuffer(SENSOR_ADDR, reg, true)
 
         let data = pins.i2cReadBuffer(SENSOR_ADDR, 2)
 
         return ((data[0] << 8) | data[1]) & 0x0FFF
+
     }
 
 
     //% block="AS5600 raw angle"
     export function rawAngle(): number {
 
-        return readWire(RAW_ANGLE_REG)
+        return readRaw()
 
     }
 
 
     function updateRotation(): void {
 
-        let current = rawAngle()
+        let current = readRaw()
         let diff = current - previousAngle
 
-        if (Math.abs(diff) > 2048) {
+        if (diff > 2048) {
+            rotations -= 1
+        }
 
-            if (diff > 0) {
-                rotationsCount -= 1
-            } else {
-                rotationsCount += 1
-            }
-
+        if (diff < -2048) {
+            rotations += 1
         }
 
         previousAngle = current
+
     }
 
 
     //% block="AS5600 angle degrees"
     export function angle(): number {
 
-        return rawAngle() * 360 / FULL_ROTATION_RAW_COUNT
+        return readRaw() * 360 / FULL_ROTATION_RAW_COUNT
 
     }
 
@@ -83,7 +84,7 @@ namespace AS5600 {
 
         updateRotation()
 
-        return (rotationsCount * 360) + angle()
+        return rotations * 360 + angle()
 
     }
 
@@ -97,15 +98,13 @@ namespace AS5600 {
 
         let angleNow = totalDegrees()
 
-        let speed = (angleNow - lastAngle) / dt
-        let accel = (speed - lastSpeed) / dt
-
-        currentSpeed = speed
-        currentAcceleration = accel
+        speedValue = (angleNow - lastAngle) / dt
+        accelValue = (speedValue - lastSpeed) / dt
 
         lastAngle = angleNow
-        lastSpeed = speed
+        lastSpeed = speedValue
         lastTime = now
+
     }
 
 
@@ -113,7 +112,7 @@ namespace AS5600 {
     export function speed(): number {
 
         updateMotion()
-        return currentSpeed
+        return speedValue
 
     }
 
@@ -122,7 +121,7 @@ namespace AS5600 {
     export function acceleration(): number {
 
         updateMotion()
-        return currentAcceleration
+        return accelValue
 
     }
 
@@ -130,8 +129,9 @@ namespace AS5600 {
     //% block="reset AS5600 zero"
     export function reset(): void {
 
-        previousAngle = rawAngle()
-        rotationsCount = 0
+        previousAngle = readRaw()
+        rotations = 0
+
         lastAngle = totalDegrees()
         lastSpeed = 0
         lastTime = input.runningTime()
