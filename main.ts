@@ -119,7 +119,7 @@ export function acceleration(): number {
     prevTotalDegrees = currentDegrees
     prevTime = currentTime
 
-    return currentSpeed
+    return accel
 }
 
     //% block="AS5600 change power mode %mode"
