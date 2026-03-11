@@ -5,7 +5,12 @@ namespace AS5600 {
     const CONFIG_REG = 0x07
     const FULL_ROTATION_RAW_COUNT = 4095
 
-    
+    let previousAngle = 0
+        let fullRotation = 0
+
+    let prevTime = input.runningTime() // in ms
+    let prevTotalDegrees = 0
+    let prevSpeed = 0
 
     //% block="initialize AS5600"
     export function init(): void {
@@ -14,12 +19,7 @@ namespace AS5600 {
         prevTotalDegrees = totalDegrees()
         prevTime = input.runningTime()
         prevSpeed = 0
-        let previousAngle = 0
-        let fullRotation = 0
-
-    let prevTime = input.runningTime() // in ms
-    let prevTotalDegrees = 0
-    let prevSpeed = 0
+        
     }
 
     function readWire(register: number): number {
@@ -96,17 +96,31 @@ namespace AS5600 {
         return currentSpeed
     }
 
-    //% block="AS5600 acceleration (deg/sec²)"
-    export function acceleration(): number {
-        let currentTime = input.runningTime()
-        let dt = (currentTime - prevTime) / 1000
-        if (dt <= 0) return 0
+   //% block="AS5600 acceleration (deg/sec²)"
+export function acceleration(): number {
 
-        let currentSpeed = speed()
-        let accel = (currentSpeed - prevSpeed) / dt
-        prevSpeed = currentSpeed
-        return accel
-    }
+    let currentTime = input.runningTime()
+    let dt = (currentTime - prevTime) / 1000
+    if (dt <= 0) return 0
+
+    let currentDegrees = totalDegrees()
+    let dAngle = currentDegrees - prevTotalDegrees
+
+    // handle wrapping
+    if (dAngle > 180) dAngle -= 360
+    if (dAngle < -180) dAngle += 360
+
+    let currentSpeed = dAngle / dt
+
+    let accel = (currentSpeed - prevSpeed) / dt
+
+    // update stored values AFTER calculation
+    prevSpeed = currentSpeed
+    prevTotalDegrees = currentDegrees
+    prevTime = currentTime
+
+    return accel
+}
 
     //% block="AS5600 change power mode %mode"
     export function changePowerMode(mode: number): void {
